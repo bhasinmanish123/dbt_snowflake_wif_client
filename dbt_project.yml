@@ -18,3 +18,7 @@ clean-targets:
 models:
   dbt_snowflake_wif_client:
     +materialized: view
+    prep:
+      +schema: PREP        # models/prep/ → PREP schema (folder-based routing)
+    rpt:
+      +schema: RPT         # models/rpt/  → RPT schema (folder-based routing)
