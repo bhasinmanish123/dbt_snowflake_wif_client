@@ -6,3 +6,5 @@ select
     city,
     signup_date
 from {{ ref('customers') }}
+-- ci test 1788777651
+-- retrigger 1788778405
