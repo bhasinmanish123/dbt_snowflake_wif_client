@@ -1,0 +1,22 @@
+# ============================================================
+# CI — dbt (runs ONLY on Pull Request)
+# Calls reusable workflow with stage: ci
+# → lint + dbt build in CI_<github_username> personal schema
+# ============================================================
+name: dbt CI
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  ci:
+    uses: bhasinmanish123/dbt-action_client/.github/workflows/dbt-reusable.yml@main
+    with:
+      stage: ci
+    secrets:
+      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
