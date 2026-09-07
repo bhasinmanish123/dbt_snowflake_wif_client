@@ -1,0 +1,36 @@
+# ============================================================
+# profiles.yml — Snowflake WIF (OIDC)
+# Token set by setup-snowflake composite action in dbt-action_client repo
+#
+#   ci target   → schema overridden by macro → CI_<github_username>
+#   prod target → schema = PROD (fixed, shared)
+# ============================================================
+dbt_snowflake_wif_client:
+  target: ci
+  outputs:
+
+    ci:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT', 'ixxaxho-kv48866') }}"
+      user: GITHUB_ACTIONS_SERVICE_USER
+      authenticator: workload_identity
+      workload_identity_provider: oidc
+      token: "{{ env_var('SNOWFLAKE_TOKEN', '') }}"
+      role: DBT_CI_ROLE
+      database: AIRBNB
+      warehouse: COMPUTE_WH
+      schema: CI                    # overridden by macro → CI_USERNAME
+      threads: 4
+
+    prod:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT', 'ixxaxho-kv48866') }}"
+      user: GITHUB_ACTIONS_SERVICE_USER
+      authenticator: workload_identity
+      workload_identity_provider: oidc
+      token: "{{ env_var('SNOWFLAKE_TOKEN', '') }}"
+      role: DBT_PROD_ROLE
+      database: AIRBNB
+      warehouse: COMPUTE_WH
+      schema: PROD
+      threads: 4
