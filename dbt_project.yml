@@ -15,6 +15,10 @@ clean-targets:
   - "target"
   - "dbt_packages"
 
+seeds:
+  dbt_snowflake_wif_client:
+    +quote_columns: false
+
 models:
   dbt_snowflake_wif_client:
     +materialized: view

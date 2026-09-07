@@ -1,8 +1,8 @@
 -- prep model — lands in PREP schema (or CI_<actor>_PREP on PR)
 select
-    ID,
-    FIRST_NAME,
-    LAST_NAME,
-    EMAIL,
-    CITY
+    customer_id,
+    first_name,
+    last_name,
+    city,
+    signup_date
 from {{ ref('customers') }}
