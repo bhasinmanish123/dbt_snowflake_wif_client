@@ -1,12 +1,12 @@
 # ============================================================
-# CI — dbt (runs ONLY on Pull Request)
-# Calls reusable workflow with stage: ci
+# CI — dbt (runs on Pull Request open/update, NOT on merge)
 # → lint + dbt build in CI_<github_username> personal schema
 # ============================================================
-name: dbt CI
+name: dbt CI (WIF)
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened]
     branches: [main]
 
 permissions:

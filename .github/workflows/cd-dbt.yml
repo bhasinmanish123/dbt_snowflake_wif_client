@@ -1,12 +1,13 @@
 # ============================================================
-# CD — dbt (runs ONLY on push/merge to main)
-# Calls reusable workflow with stage: cd
+# CD — dbt (runs ONLY when a PR is MERGED to main)
+# Uses pull_request closed + merged==true (precise merge detection)
 # → dbt build to PROD (and PREP/RPT deploy schemas)
 # ============================================================
-name: dbt CD
+name: dbt CD (WIF)
 
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches: [main]
 
 permissions:
@@ -15,6 +16,7 @@ permissions:
 
 jobs:
   cd:
+    if: github.event.pull_request.merged == true
     uses: bhasinmanish123/dbt-action_client/.github/workflows/dbt-reusable.yml@main
     with:
       stage: cd
