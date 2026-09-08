@@ -2,6 +2,8 @@
 # CD — dbt (runs ONLY when a PR is MERGED to main)
 # Uses pull_request closed + merged==true (precise merge detection)
 # → dbt build to PROD (and PREP/RPT deploy schemas)
+#
+# concurrency: only ONE CD deploy at a time (never interrupt a deploy)
 # ============================================================
 name: dbt CD (WIF)
 
@@ -9,6 +11,12 @@ on:
   pull_request:
     types: [closed]
     branches: [main]
+
+# Serialize CD deploys — never run two prod deploys in parallel,
+# never cancel a running deploy (queue new ones instead)
+concurrency:
+  group: data-transform-cd-dbt
+  cancel-in-progress: false
 
 permissions:
   id-token: write
