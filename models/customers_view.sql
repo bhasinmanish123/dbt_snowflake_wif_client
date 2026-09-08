@@ -18,3 +18,4 @@ from {{ ref('customers') }}
 -- test ci dev prod
 -- test composite action setup-snowflake
 -- test 2 manifest cache
+-- concurrency test 1
