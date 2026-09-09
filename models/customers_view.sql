@@ -19,3 +19,4 @@ from {{ ref('customers') }}
 -- test composite action setup-snowflake
 -- test 2 manifest cache
 -- concurrency test 1
+-- test inline structure 1788950422
