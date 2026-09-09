@@ -1,9 +1,10 @@
 # ============================================================
-# dbt CI — inline logic (composite action provides token only)
+# dbt CI — runs ci.sh (composite action provides token only)
 #
 # Flow:
-#   1. setup-snowflake composite action → fetches WIF OIDC token
-#   2. dbt lint + build run INLINE here (not via shared workflow)
+#   1. Lint (YAML + SQL)
+#   2. setup-snowflake composite action → WIF OIDC token
+#   3. Run ci.sh (dbt commands live in the script — per-repo customizable)
 #   → builds in CI_<github_username> personal schema
 # ============================================================
 name: dbt CI
@@ -23,13 +24,14 @@ permissions:
 
 jobs:
   ci:
-    name: dbt build → CI_${{ github.actor }}
+    name: dbt CI → CI_${{ github.actor }}
     runs-on: ubuntu-latest
     environment: prod
     env:
       DBT_PROFILES_DIR: .
       GITHUB_ACTOR: ${{ github.actor }}
       GITHUB_EVENT_NAME: ${{ github.event_name }}
+      DBT_TARGET: ci
     steps:
       - uses: actions/checkout@v4
 
@@ -51,12 +53,9 @@ jobs:
           environment: ci
           snowflake-account: ${{ secrets.SNOWFLAKE_ACCOUNT }}
 
-      # ---- dbt (inline — you own these commands) ----
+      # ---- dbt via ci.sh (per-repo customizable script) ----
       - name: Install dbt
         run: pip install dbt-snowflake
 
-      - name: dbt deps
-        run: dbt deps || true
-
-      - name: dbt build (CI)
-        run: dbt build --target ci
+      - name: Run ci.sh
+        run: chmod +x ci.sh && ./ci.sh
