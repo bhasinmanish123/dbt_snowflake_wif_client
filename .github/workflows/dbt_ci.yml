@@ -1,0 +1,62 @@
+# ============================================================
+# dbt CI — inline logic (composite action provides token only)
+#
+# Flow:
+#   1. setup-snowflake composite action → fetches WIF OIDC token
+#   2. dbt lint + build run INLINE here (not via shared workflow)
+#   → builds in CI_<github_username> personal schema
+# ============================================================
+name: dbt CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+concurrency:
+  group: dbt-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  ci:
+    name: dbt build → CI_${{ github.actor }}
+    runs-on: ubuntu-latest
+    environment: prod
+    env:
+      DBT_PROFILES_DIR: .
+      GITHUB_ACTOR: ${{ github.actor }}
+      GITHUB_EVENT_NAME: ${{ github.event_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # ---- Lint ----
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install linters
+        run: pip install yamllint sqlfluff
+      - name: YAML Lint
+        run: yamllint -c .yamllint.yml dbt_project.yml profiles.yml
+      - name: SQL Lint
+        run: sqlfluff lint models/ --dialect snowflake --ignore templating
+
+      # ---- Token (composite action ONLY provides the WIF token) ----
+      - name: Setup Snowflake (WIF token)
+        uses: bhasinmanish123/dbt-action_client/.github/actions/setup-snowflake@main
+        with:
+          environment: ci
+          snowflake-account: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+
+      # ---- dbt (inline — you own these commands) ----
+      - name: Install dbt
+        run: pip install dbt-snowflake
+
+      - name: dbt deps
+        run: dbt deps || true
+
+      - name: dbt build (CI)
+        run: dbt build --target ci

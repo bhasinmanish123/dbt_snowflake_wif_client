@@ -1,0 +1,51 @@
+# ============================================================
+# dbt CD — inline logic (composite action provides token only)
+#
+# Flow:
+#   1. setup-snowflake composite action → fetches WIF OIDC token
+#   2. dbt build runs INLINE here → PROD (and PREP/RPT deploy schemas)
+#
+# Runs ONLY when a PR is merged to main.
+# ============================================================
+name: dbt CD
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+concurrency:
+  group: dbt-cd
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  cd:
+    if: github.event.pull_request.merged == true
+    name: dbt build → PROD
+    runs-on: ubuntu-latest
+    environment: prod
+    env:
+      DBT_PROFILES_DIR: .
+    steps:
+      - uses: actions/checkout@v4
+
+      # ---- Token (composite action ONLY provides the WIF token) ----
+      - name: Setup Snowflake (WIF token)
+        uses: bhasinmanish123/dbt-action_client/.github/actions/setup-snowflake@main
+        with:
+          environment: prod
+          snowflake-account: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+
+      # ---- dbt (inline — you own these commands) ----
+      - name: Install dbt
+        run: pip install dbt-snowflake
+
+      - name: dbt deps
+        run: dbt deps || true
+
+      - name: dbt build (PROD)
+        run: dbt build --target prod
