@@ -1,4 +1,4 @@
-{% macro generate_schema_name(custom_schema_name, node) -%}
+{% macro generate_snapshot_schema_name(custom_schema_name, node) -%}
 
     {%- set default_schema = target.schema -%}
     {%- set github_actor = env_var('GITHUB_ACTOR', '') -%}
