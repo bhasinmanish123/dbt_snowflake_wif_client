@@ -2,9 +2,7 @@
 
 {{
     config(
-      schema='HIST',
       unique_key='customer_id',
-      strategy='check',
       check_cols=['city']
     )
 }}
