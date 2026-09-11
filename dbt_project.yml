@@ -1,3 +1,4 @@
+# Name your project
 name: 'dbt_snowflake_wif_client'
 version: '1.0.0'
 config-version: 2
@@ -5,10 +6,10 @@ config-version: 2
 profile: 'dbt_snowflake_wif_client'
 
 model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
 seed-paths: ["seeds"]
 macro-paths: ["macros"]
-test-paths: ["tests"]
-analysis-paths: ["analyses"]
 snapshot-paths: ["snapshots"]
 
 clean-targets:
@@ -19,10 +20,25 @@ seeds:
   dbt_snowflake_wif_client:
     +quote_columns: false
 
+# Models — folder-based +schema routing (macro adds CI_<actor>_ on PR)
 models:
   dbt_snowflake_wif_client:
+    +transient: true
     +materialized: view
+
     prep:
-      +schema: PREP        # models/prep/ → PREP schema (folder-based routing)
+      +schema: PREP
+
     rpt:
-      +schema: RPT         # models/rpt/  → RPT schema (folder-based routing)
+      +schema: RPT
+
+# Snapshots — folder-based +schema routing (macro adds CI_<actor>_ on PR)
+# NOTE: use +schema here (NOT target_schema in the snapshot file)
+#       so generate_snapshot_schema_name macro applies.
+snapshots:
+  dbt_snowflake_wif_client:
+    +transient: false
+
+    hist:
+      +schema: HIST
+      +strategy: check
