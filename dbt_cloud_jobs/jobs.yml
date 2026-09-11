@@ -1,0 +1,32 @@
+# ============================================================
+# dbt Cloud job definitions
+# Add/edit jobs here. On merge to main (when this folder changes),
+# deploy-jobs.yml syncs them to dbt Cloud (create if missing, update if exists).
+#
+# Jobs connect to Snowflake via the dbt Cloud ENVIRONMENT (environment_id).
+# ============================================================
+
+project_id: 12345              # <-- dbt Cloud project ID
+environment_id: 67890          # <-- dbt Cloud environment (holds Snowflake connection)
+
+jobs:
+
+  daily_prod_build:
+    name: "Daily Prod Build"
+    execute_steps:
+      - "dbt build --target prod"
+    schedule:
+      cron: "0 2 * * *"            # 2am daily
+    triggers:
+      schedule: true
+      github_webhook: false
+
+  hourly_reporting:
+    name: "Hourly Reporting"
+    execute_steps:
+      - "dbt build --target prod --select tag:hourly"
+    schedule:
+      cron: "0 * * * *"            # every hour
+    triggers:
+      schedule: true
+      github_webhook: false

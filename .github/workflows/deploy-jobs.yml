@@ -1,0 +1,67 @@
+# ============================================================
+# Deploy dbt Cloud Jobs (same repo as dbt project)
+#
+# Runs ONLY when dbt_cloud_jobs/ or scripts/ change — so it's
+# independent of the model CI/CD (dbt_ci.yml / dbt_cd.yml).
+#
+#   PR (job YAML changed)   → validate YAML (no dbt Cloud changes)
+#   Merge (job YAML changed) → sync jobs to dbt Cloud (create/update)
+# ============================================================
+name: Deploy dbt Cloud Jobs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'dbt_cloud_jobs/**'
+      - 'scripts/sync_dbt_cloud_jobs.py'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'dbt_cloud_jobs/**'
+      - 'scripts/sync_dbt_cloud_jobs.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # ---- PR: validate job YAML only (no dbt Cloud changes) ----
+  validate-jobs:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        run: pip install pyyaml
+      - name: Validate job YAMLs parse
+        run: |
+          for f in dbt_cloud_jobs/*.yml; do
+            echo "Validating $f"
+            python -c "import yaml; yaml.safe_load(open('$f'))"
+          done
+
+  # ---- Merge: sync jobs to dbt Cloud ----
+  sync-jobs:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        run: pip install requests pyyaml
+      - name: Sync dbt Cloud jobs
+        env:
+          DBT_CLOUD_API_TOKEN: ${{ secrets.DBT_CLOUD_API_TOKEN }}
+          DBT_CLOUD_ACCOUNT_ID: ${{ secrets.DBT_CLOUD_ACCOUNT_ID }}
+        run: |
+          for f in dbt_cloud_jobs/*.yml; do
+            echo "=== Syncing $f ==="
+            python scripts/sync_dbt_cloud_jobs.py "$f"
+          done
