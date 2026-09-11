@@ -1,13 +1,14 @@
 # ============================================================
 # dbt Cloud job definitions
-# Add/edit jobs here. On merge to main (when this folder changes),
-# deploy-jobs.yml syncs them to dbt Cloud (create if missing, update if exists).
+# On merge to main (when this folder changes), deploy-jobs.yml
+# syncs these to dbt Cloud (create if missing, update if exists).
 #
 # Jobs connect to Snowflake via the dbt Cloud ENVIRONMENT (environment_id).
 # ============================================================
 
-project_id: 12345              # <-- dbt Cloud project ID
-environment_id: 67890          # <-- dbt Cloud environment (holds Snowflake connection)
+# Real dbt Cloud IDs (from the dbt Cloud URLs)
+project_id: 70506183166416          # dbt Cloud project
+environment_id: 70506183156274      # environment (holds Snowflake connection)
 
 jobs:
 
