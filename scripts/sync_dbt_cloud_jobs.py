@@ -35,14 +35,27 @@ def list_jobs(project_id):
 
 
 def build_payload(project_id, environment_id, name, job):
+    # Honor schedule_enabled (default True for backward compatibility).
+    # When False → job is created/updated with NO schedule trigger
+    # (triggered externally, e.g. by Airflow via the run API).
+    schedule_enabled = job.get("schedule_enabled", True)
     cron = job.get("schedule", {}).get("cron", "0 * * * *")
+
+    triggers = job.get(
+        "triggers",
+        {"schedule": bool(schedule_enabled), "github_webhook": False},
+    )
+    # If schedule is disabled, force the schedule trigger off regardless of default.
+    if not schedule_enabled:
+        triggers = {**triggers, "schedule": False}
+
     return {
         "account_id": int(ACCOUNT_ID),
         "project_id": int(project_id),
         "environment_id": int(job.get("environment_id", environment_id)),
         "name": name,
         "execute_steps": job["execute_steps"],
-        "triggers": job.get("triggers", {"schedule": True, "github_webhook": False}),
+        "triggers": triggers,
         "settings": {"threads": job.get("threads", 4), "target_name": job.get("target", "prod")},
         "schedule": {"cron": cron, "date": {"type": "custom_cron", "cron": cron}},
         "state": 1,

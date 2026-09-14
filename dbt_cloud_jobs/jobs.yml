@@ -1,33 +1,27 @@
 # ============================================================
-# dbt Cloud job definitions
-# On merge to main (when this folder changes), deploy-jobs.yml
-# syncs these to dbt Cloud (create if missing, update if exists).
+# dbt Cloud job definitions — CREATE ONLY (no schedule)
 #
-# Jobs connect to Snowflake via the dbt Cloud ENVIRONMENT (environment_id).
+# Jobs are CREATED in dbt Cloud but NOT scheduled.
+# Triggered externally (by Airflow) via the dbt Cloud API:
+#     POST /jobs/{job_id}/run/
+#
+# schedule_enabled: false → no cron, no auto-run.
+# Jobs connect to Snowflake via the environment (environment_id).
 # ============================================================
 
-# Real dbt Cloud IDs (from the dbt Cloud URLs)
-project_id: 70506183166416          # dbt Cloud project
-environment_id: 70506183156274      # environment (holds Snowflake connection)
+project_id: 70506183166416
+environment_id: 70506183156274
 
 jobs:
 
-  daily_prod_build:
-    name: "Daily Prod Build"
+  prod_build:
+    name: "Prod Build"
     execute_steps:
       - "dbt build --target prod"
-    schedule:
-      cron: "0 2 * * *"            # 2am daily
-    triggers:
-      schedule: true
-      github_webhook: false
+    schedule_enabled: false
 
-  hourly_reporting:
-    name: "Hourly Reporting"
+  reporting_build:
+    name: "Reporting Build"
     execute_steps:
       - "dbt build --target prod --select tag:hourly"
-    schedule:
-      cron: "0 * * * *"            # every hour
-    triggers:
-      schedule: true
-      github_webhook: false
+    schedule_enabled: false
