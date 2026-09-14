@@ -81,6 +81,29 @@ GRANT ALL PRIVILEGES ON FUTURE TABLES  IN DATABASE AIRBNB TO ROLE DBT_CI_ROLE;
 GRANT ALL PRIVILEGES ON FUTURE VIEWS   IN DATABASE AIRBNB TO ROLE DBT_CI_ROLE;
 
 -- ==================================================================
+-- STEP 4b: DEV role — shared DEV deploys inside AIRBNB
+--   Runs AFTER CI passes. Deploys to shared schemas (MAIN/PREP/RPT),
+--   NO personal CI_<user> prefix. This is the "dev database" landing
+--   zone before promoting to TEST and PROD.
+-- ==================================================================
+-- Pre-create shared dev schemas (dbt can also create them via grants below)
+CREATE SCHEMA IF NOT EXISTS AIRBNB.MAIN COMMENT = 'dbt DEV — base/root models';
+CREATE SCHEMA IF NOT EXISTS AIRBNB.PREP COMMENT = 'dbt DEV — models/prep';
+CREATE SCHEMA IF NOT EXISTS AIRBNB.RPT  COMMENT = 'dbt DEV — models/rpt';
+
+CREATE ROLE IF NOT EXISTS DBT_DEV_ROLE;
+GRANT USAGE   ON WAREHOUSE COMPUTE_WH            TO ROLE DBT_DEV_ROLE;
+GRANT USAGE   ON DATABASE  AIRBNB                TO ROLE DBT_DEV_ROLE;
+GRANT CREATE SCHEMA ON DATABASE AIRBNB           TO ROLE DBT_DEV_ROLE;
+GRANT ALL PRIVILEGES ON FUTURE SCHEMAS IN DATABASE AIRBNB TO ROLE DBT_DEV_ROLE;
+GRANT ALL PRIVILEGES ON FUTURE TABLES  IN DATABASE AIRBNB TO ROLE DBT_DEV_ROLE;
+GRANT ALL PRIVILEGES ON FUTURE VIEWS   IN DATABASE AIRBNB TO ROLE DBT_DEV_ROLE;
+-- explicit grants on the shared dev schemas (base MAIN + folder PREP/RPT)
+GRANT USAGE, CREATE TABLE, CREATE VIEW ON SCHEMA AIRBNB.MAIN TO ROLE DBT_DEV_ROLE;
+GRANT USAGE, CREATE TABLE, CREATE VIEW ON SCHEMA AIRBNB.PREP TO ROLE DBT_DEV_ROLE;
+GRANT USAGE, CREATE TABLE, CREATE VIEW ON SCHEMA AIRBNB.RPT  TO ROLE DBT_DEV_ROLE;
+
+-- ==================================================================
 -- STEP 5: (Optional) read access to source data
 -- If TEST/PROD models read from raw sources that live in AIRBNB (or a
 -- RAW database), grant SELECT so the deploy roles can read them.
@@ -99,12 +122,14 @@ GRANT ALL PRIVILEGES ON FUTURE VIEWS   IN DATABASE AIRBNB TO ROLE DBT_CI_ROLE;
 -- STEP 6: Grant roles to the EXISTING WIF service user (no new secret)
 -- ==================================================================
 GRANT ROLE DBT_CI_ROLE   TO USER GITHUB_ACTIONS_SERVICE_USER;
+GRANT ROLE DBT_DEV_ROLE  TO USER GITHUB_ACTIONS_SERVICE_USER;
 GRANT ROLE DBT_TEST_ROLE TO USER GITHUB_ACTIONS_SERVICE_USER;
 GRANT ROLE DBT_PROD_ROLE TO USER GITHUB_ACTIONS_SERVICE_USER;
 
 -- Optional: grant to ACCOUNTADMIN for manual inspection
 GRANT ROLE DBT_TEST_ROLE TO ROLE ACCOUNTADMIN;
 GRANT ROLE DBT_PROD_ROLE TO ROLE ACCOUNTADMIN;
+GRANT ROLE DBT_DEV_ROLE  TO ROLE ACCOUNTADMIN;
 
 -- ==================================================================
 -- STEP 7: Verify

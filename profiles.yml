@@ -3,6 +3,7 @@
 # Token set by setup-snowflake composite action in dbt-action_client repo
 #
 #   ci target   → database = AIRBNB, schema overridden by macro → CI_<github_username>
+#   dev target  → database = AIRBNB (shared DEV db), schema MAIN/PREP/RPT (no personal prefix)
 #   test target → database = TEST   (dedicated TEST database)
 #   prod target → database = PROD   (dedicated PROD database)
 # ============================================================
@@ -21,6 +22,19 @@ dbt_snowflake_wif_client:
       database: AIRBNB
       warehouse: COMPUTE_WH
       schema: CI                    # overridden by macro → CI_USERNAME
+      threads: 4
+
+    dev:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT', 'ixxaxho-kv48866') }}"
+      user: GITHUB_ACTIONS_SERVICE_USER
+      authenticator: workload_identity
+      workload_identity_provider: oidc
+      token: "{{ env_var('SNOWFLAKE_TOKEN', '') }}"
+      role: DBT_DEV_ROLE
+      database: AIRBNB              # shared DEV database (folder routing → AIRBNB.PREP/AIRBNB.RPT)
+      warehouse: COMPUTE_WH
+      schema: MAIN                  # shared dev base schema (no personal prefix; not in ci_targets)
       threads: 4
 
     test:

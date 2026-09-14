@@ -1,16 +1,19 @@
 # ============================================================
-# dbt CI — runs ci.sh, then deploys to shared TEST DB
+# dbt CI — runs ci.sh, then deploys DEV (AIRBNB) then TEST
 #
 # Flow:
 #   1. ci job:
 #      a. Lint (YAML + SQL)
 #      b. setup-snowflake composite action → WIF OIDC token
-#      c. Run ci.sh → builds in CI_<github_username> personal schema
-#   2. test-deploy job (needs: ci — only runs if CI passes):
-#      a. setup-snowflake composite action (test env) → WIF OIDC token
-#      b. Run test.sh → builds into shared TEST schema for review
+#      c. Run ci.sh → VALIDATES in CI_<github_username> personal schema
+#   2. dev-deploy job (needs: ci — only if CI passes):
+#      a. setup-snowflake (dev env) → WIF OIDC token
+#      b. Run dev.sh → deploys into shared DEV database (AIRBNB)
+#   3. test-deploy job (needs: dev-deploy — only if DEV passes):
+#      a. setup-snowflake (test env) → WIF OIDC token
+#      b. Run test.sh → deploys into TEST database
 #
-#   PR opened/updated → CI → TEST DB.  Prod happens on merge (dbt_cd.yml).
+#   PR opened/updated → CI → DEV(AIRBNB) → TEST.  Prod on merge (dbt_cd.yml).
 # ============================================================
 name: dbt CI
 
@@ -65,10 +68,36 @@ jobs:
       - name: Run ci.sh
         run: chmod +x ci.sh && ./ci.sh
 
-  # ---- TEST DB deploy: runs ONLY after CI passes ----
+  # ---- DEV deploy (shared AIRBNB dev db): runs ONLY after CI passes ----
+  dev-deploy:
+    name: dbt DEV deploy → AIRBNB
+    needs: ci
+    runs-on: ubuntu-latest
+    environment: prod
+    env:
+      DBT_PROFILES_DIR: .
+      DBT_TARGET: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      # ---- Token (composite action ONLY provides the WIF token) ----
+      - name: Setup Snowflake (WIF token)
+        uses: bhasinmanish123/dbt-action_client/.github/actions/setup-snowflake@main
+        with:
+          environment: dev
+          snowflake-account: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+
+      # ---- dbt via dev.sh (per-repo customizable script) ----
+      - name: Install dbt
+        run: pip install dbt-snowflake
+
+      - name: Run dev.sh
+        run: chmod +x dev.sh && ./dev.sh
+
+  # ---- TEST DB deploy: runs ONLY after DEV passes ----
   test-deploy:
     name: dbt TEST deploy → TEST
-    needs: ci
+    needs: dev-deploy
     runs-on: ubuntu-latest
     environment: prod
     env:
