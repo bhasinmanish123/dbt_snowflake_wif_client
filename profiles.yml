@@ -33,7 +33,7 @@ dbt_snowflake_wif_client:
       role: DBT_TEST_ROLE
       database: TEST                # dedicated TEST database (folder routing → TEST.PREP/TEST.RPT)
       warehouse: COMPUTE_WH
-      schema: PUBLIC                # base schema; models route to PREP/RPT via folders
+      schema: MAIN                  # role-owned base schema (avoids PUBLIC ownership conflict)
       threads: 4
 
     prod:
@@ -46,5 +46,5 @@ dbt_snowflake_wif_client:
       role: DBT_PROD_ROLE
       database: PROD                # dedicated PROD database (folder routing → PROD.PREP/PROD.RPT)
       warehouse: COMPUTE_WH
-      schema: PUBLIC                # base schema; models route to PREP/RPT via folders
+      schema: MAIN                  # role-owned base schema (avoids PUBLIC ownership conflict)
       threads: 4

@@ -28,8 +28,10 @@ CREATE DATABASE IF NOT EXISTS PROD COMMENT = 'dbt PROD deploys (on merge to main
 
 -- (Optional) pre-create the folder-routed schemas. dbt will create them
 -- anyway given the DB-wide grants below, but pre-creating makes grants explicit.
+CREATE SCHEMA IF NOT EXISTS TEST.MAIN COMMENT = 'dbt TEST — base/root models';
 CREATE SCHEMA IF NOT EXISTS TEST.PREP COMMENT = 'dbt TEST — models/prep';
 CREATE SCHEMA IF NOT EXISTS TEST.RPT  COMMENT = 'dbt TEST — models/rpt';
+CREATE SCHEMA IF NOT EXISTS PROD.MAIN COMMENT = 'dbt PROD — base/root models';
 CREATE SCHEMA IF NOT EXISTS PROD.PREP COMMENT = 'dbt PROD — models/prep';
 CREATE SCHEMA IF NOT EXISTS PROD.RPT  COMMENT = 'dbt PROD — models/rpt';
 
@@ -46,6 +48,9 @@ GRANT ALL PRIVILEGES ON FUTURE TABLES  IN DATABASE TEST TO ROLE DBT_TEST_ROLE;
 GRANT ALL PRIVILEGES ON FUTURE VIEWS   IN DATABASE TEST TO ROLE DBT_TEST_ROLE;
 -- existing (pre-created) schemas
 GRANT USAGE, CREATE TABLE, CREATE VIEW ON ALL SCHEMAS IN DATABASE TEST TO ROLE DBT_TEST_ROLE;
+-- explicit base-schema grants (MAIN is the profile base schema; PUBLIC as fallback)
+GRANT USAGE, CREATE TABLE, CREATE VIEW ON SCHEMA TEST.MAIN   TO ROLE DBT_TEST_ROLE;
+GRANT USAGE, CREATE TABLE, CREATE VIEW ON SCHEMA TEST.PUBLIC TO ROLE DBT_TEST_ROLE;
 
 -- ==================================================================
 -- STEP 3: PROD role — scoped to the PROD database
@@ -59,6 +64,9 @@ GRANT ALL PRIVILEGES ON FUTURE SCHEMAS IN DATABASE PROD TO ROLE DBT_PROD_ROLE;
 GRANT ALL PRIVILEGES ON FUTURE TABLES  IN DATABASE PROD TO ROLE DBT_PROD_ROLE;
 GRANT ALL PRIVILEGES ON FUTURE VIEWS   IN DATABASE PROD TO ROLE DBT_PROD_ROLE;
 GRANT USAGE, CREATE TABLE, CREATE VIEW ON ALL SCHEMAS IN DATABASE PROD TO ROLE DBT_PROD_ROLE;
+-- explicit base-schema grants (MAIN is the profile base schema; PUBLIC as fallback)
+GRANT USAGE, CREATE TABLE, CREATE VIEW ON SCHEMA PROD.MAIN   TO ROLE DBT_PROD_ROLE;
+GRANT USAGE, CREATE TABLE, CREATE VIEW ON SCHEMA PROD.PUBLIC TO ROLE DBT_PROD_ROLE;
 
 -- ==================================================================
 -- STEP 4: CI role — stays on AIRBNB (reference; likely already exists)
