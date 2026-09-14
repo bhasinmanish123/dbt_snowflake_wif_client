@@ -59,19 +59,33 @@ def build_payload(project_id, environment_id, name, job):
         "settings": {"threads": job.get("threads", 4), "target_name": job.get("target", "prod")},
         "schedule": {"cron": cron, "date": {"type": "custom_cron", "cron": cron}},
         "state": 1,
+        # dbt Cloud's create-job endpoint requires these fields to be present
+        # (even when null/false) — see dbt-labs docs issue on required body fields.
+        "dbt_version": job.get("dbt_version"),
+        "deferring_job_definition_id": None,
+        "run_generate_sources": job.get("run_generate_sources", False),
+        "generate_docs": job.get("generate_docs", False),
     }
 
 
-def create_job(payload):
-    r = requests.post(f"{BASE}/jobs/", headers=HEADERS, json=payload)
+def _post(url, payload):
+    r = requests.post(url, headers=HEADERS, json=payload)
+    if not r.ok:
+        # Surface the dbt Cloud API error body — it names the offending field.
+        print(f"  API {r.status_code} for {url}")
+        print(f"  Response: {r.text[:1000]}")
     r.raise_for_status()
+    return r
+
+
+def create_job(payload):
+    r = _post(f"{BASE}/jobs/", payload)
     print(f"  CREATED: {payload['name']} (id={r.json()['data']['id']})")
 
 
 def update_job(job_id, payload):
     payload["id"] = job_id
-    r = requests.post(f"{BASE}/jobs/{job_id}/", headers=HEADERS, json=payload)
-    r.raise_for_status()
+    r = _post(f"{BASE}/jobs/{job_id}/", payload)
     print(f"  UPDATED: {payload['name']} (id={job_id})")
 
 
