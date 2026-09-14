@@ -7,6 +7,10 @@
 #
 # schedule_enabled: false → no cron, no auto-run.
 # Jobs connect to Snowflake via the environment (environment_id).
+#
+# NOTE: dbt Cloud AUTOMATICALLY injects --target from the environment's
+#       deployment credentials (target_name=prod). Do NOT put --target in
+#       execute_steps or dbt errors: "--target cannot be used multiple times".
 # ============================================================
 
 project_id: 70506183166416
@@ -17,11 +21,11 @@ jobs:
   prod_build:
     name: "Prod Build"
     execute_steps:
-      - "dbt build --target prod"
+      - "dbt build"
     schedule_enabled: false
 
   reporting_build:
     name: "Reporting Build"
     execute_steps:
-      - "dbt build --target prod --select tag:hourly"
+      - "dbt build --select tag:hourly"
     schedule_enabled: false
