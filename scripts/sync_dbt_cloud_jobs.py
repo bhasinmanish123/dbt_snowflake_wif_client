@@ -50,6 +50,7 @@ def build_payload(project_id, environment_id, name, job):
         triggers = {**triggers, "schedule": False}
 
     return {
+        "id": None,
         "account_id": int(ACCOUNT_ID),
         "project_id": int(project_id),
         "environment_id": int(job.get("environment_id", environment_id)),
@@ -89,6 +90,22 @@ def update_job(job_id, payload):
     print(f"  UPDATED: {payload['name']} (id={job_id})")
 
 
+def preflight(project_id, environment_id):
+    """Diagnose account/environment access before attempting create."""
+    print(f"Preflight: BASE={BASE}")
+    # 1) account reachable?
+    ra = requests.get(f"{BASE}/", headers=HEADERS)
+    print(f"  GET account: {ra.status_code}")
+    # 2) environment exists and is visible to this token?
+    re_ = requests.get(f"{BASE}/environments/{environment_id}/", headers=HEADERS)
+    print(f"  GET environment {environment_id}: {re_.status_code}")
+    if not re_.ok:
+        print(f"    -> {re_.text[:400]}")
+    # 3) can we list jobs (read)?
+    rj = requests.get(f"{BASE}/jobs/", headers=HEADERS, params={"project_id": project_id})
+    print(f"  GET jobs (list): {rj.status_code}")
+
+
 def main(yaml_path):
     with open(yaml_path) as f:
         cfg = yaml.safe_load(f)
@@ -97,6 +114,7 @@ def main(yaml_path):
     environment_id = cfg["environment_id"]
 
     print(f"Syncing jobs from {yaml_path} (project_id={project_id})")
+    preflight(project_id, environment_id)
     existing = list_jobs(project_id)
     print(f"Found {len(existing)} existing job(s).")
 
