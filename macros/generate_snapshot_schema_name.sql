@@ -1,22 +1,20 @@
-{% macro generate_schema_name(custom_schema_name, node) -%}
+{% macro generate_snapshot_schema_name(custom_schema_name, node) -%}
 
     {#
-        Per-developer isolation is applied ONLY on CI runs, controlled by
-        FOUR conditions (all must be true):
+        Snapshot schema isolation — SAME logic as generate_schema_name.
+        Snapshots must be isolated per-developer on CI so concurrent PR
+        builds don't corrupt each other's SCD history.
+
+        Four conditions (all true) → isolate:
             1. target.name in ['ci', 'sit']
             2. DBT_CI_RUN == 'true'
             3. GITHUB_ACTOR != ''
             4. GITHUB_EVENT_NAME in ['pull_request', 'push']
 
-        Then:
-            pull_request → CI_<actor>_<schema>   (CI_ prefix, throwaway validation)
-            push         → <actor>_<schema>      (no CI_ prefix, per-dev)
+            pull_request → CI_<actor>_<schema>
+            push         → <actor>_<schema>
 
-        Deploy / non-CI runs (DBT_CI_RUN='false', empty event):
-            → standard folder-based routing (PREP, RPT, HIST) — shared schemas
-
-        actor_clean uppercases and strips '_HELIA'
-            e.g. 502010371_helia → 502010371
+        Deploy / non-CI → shared schema (HIST etc.)
     #}
 
     {%- set default_schema = target.schema -%}
@@ -24,7 +22,6 @@
     {%- set github_event = env_var('GITHUB_EVENT_NAME', '') -%}
     {%- set dbt_ci_run = env_var('DBT_CI_RUN', 'false') -%}
 
-    {#- CI targets that should get per-developer isolation -#}
     {%- set ci_targets = ['ci', 'sit'] -%}
 
     {%- if target.name in ci_targets and dbt_ci_run == 'true' and github_actor != '' and github_event in ['pull_request', 'push'] -%}
@@ -53,11 +50,10 @@
 
     {%- else -%}
 
-        {#- Deploy / non-CI runs: standard folder-based schema routing -#}
-        {%- if custom_schema_name is not none -%}
-            {{ custom_schema_name | trim }}
-        {%- else -%}
+        {%- if custom_schema_name is none -%}
             {{ default_schema }}
+        {%- else -%}
+            {{ custom_schema_name | trim }}
         {%- endif -%}
 
     {%- endif -%}
