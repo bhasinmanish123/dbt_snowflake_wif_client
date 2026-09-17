@@ -36,6 +36,7 @@ jobs:
       DBT_PROFILES_DIR: .
       GITHUB_ACTOR: ${{ github.actor }}
       GITHUB_EVENT_NAME: ${{ github.event_name }}
+      DBT_CI_RUN: 'true'
       DBT_TARGET: ci
     steps:
       - uses: actions/checkout@v4
@@ -73,6 +74,9 @@ jobs:
     environment: prod
     env:
       DBT_PROFILES_DIR: .
+      GITHUB_ACTOR: ${{ github.actor }}
+      GITHUB_EVENT_NAME: ''
+      DBT_CI_RUN: 'false'
       DBT_TARGET: test
     steps:
       - uses: actions/checkout@v4
