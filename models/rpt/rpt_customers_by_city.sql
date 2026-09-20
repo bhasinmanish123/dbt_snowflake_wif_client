@@ -5,3 +5,4 @@ select
     count(*) as customer_count
 from {{ ref('prep_customers') }}
 group by city
+-- test run on new account 1789939240
