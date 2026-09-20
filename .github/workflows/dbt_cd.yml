@@ -1,19 +1,26 @@
 # ============================================================
-# dbt CD — runs cd.sh (composite action provides token only)
+# dbt CD (PROD) — MANUAL trigger only
+#
+# PROD is a deliberate promotion, NOT automatic on merge.
+# Trigger it from Actions → "dbt CD (PROD)" → Run workflow,
+# or via CLI: gh workflow run "dbt CD (PROD)" --ref main
 #
 # Flow:
 #   1. setup-snowflake composite action → WIF OIDC token
-#   2. Run cd.sh (dbt commands live in the script — per-repo customizable)
-#   → builds PROD (and PREP/RPT deploy schemas)
+#   2. Run cd.sh → builds PROD (PREP/RPT/HIST deploy schemas)
 #
-# Runs ONLY when a PR is merged to main.
+# Decoupled: PROD never fires on merge. SIT auto-deploys on merge
+# (dbt_deploy_sit.yml); you promote to PROD when ready.
 # ============================================================
-name: dbt CD
+name: dbt CD (PROD)
 
 on:
-  pull_request:
-    types: [closed]
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      select:
+        description: 'dbt --select (optional, e.g. state:modified+ or tag:nightly)'
+        required: false
+        default: ''
 
 concurrency:
   group: dbt-cd
@@ -25,7 +32,6 @@ permissions:
 
 jobs:
   cd:
-    if: github.event.pull_request.merged == true
     name: dbt CD → PROD
     runs-on: ubuntu-latest
     environment: prod
@@ -35,6 +41,7 @@ jobs:
       GITHUB_EVENT_NAME: ''
       DBT_CI_RUN: 'false'
       DBT_TARGET: prod
+      DBT_SELECT: ${{ github.event.inputs.select }}
     steps:
       - uses: actions/checkout@v4
 
