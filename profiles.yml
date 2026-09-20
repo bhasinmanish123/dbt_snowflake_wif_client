@@ -12,7 +12,7 @@ dbt_snowflake_wif_client:
 
     ci:
       type: snowflake
-      account: "{{ env_var('SNOWFLAKE_ACCOUNT', 'ixxaxho-kv48866') }}"
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT', 'REPLACE_WITH_NEW_ACCOUNT') }}"
       user: GITHUB_ACTIONS_SERVICE_USER
       authenticator: workload_identity
       workload_identity_provider: oidc
@@ -25,7 +25,7 @@ dbt_snowflake_wif_client:
 
     test:
       type: snowflake
-      account: "{{ env_var('SNOWFLAKE_ACCOUNT', 'ixxaxho-kv48866') }}"
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT', 'REPLACE_WITH_NEW_ACCOUNT') }}"
       user: GITHUB_ACTIONS_SERVICE_USER
       authenticator: workload_identity
       workload_identity_provider: oidc
@@ -38,7 +38,7 @@ dbt_snowflake_wif_client:
 
     prod:
       type: snowflake
-      account: "{{ env_var('SNOWFLAKE_ACCOUNT', 'ixxaxho-kv48866') }}"
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT', 'REPLACE_WITH_NEW_ACCOUNT') }}"
       user: GITHUB_ACTIONS_SERVICE_USER
       authenticator: workload_identity
       workload_identity_provider: oidc

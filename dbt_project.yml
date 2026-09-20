@@ -15,6 +15,13 @@ clean-targets:
   - "target"
   - "dbt_packages"
 
+snapshots:
+  dbt_snowflake_wif_client:
+    +transient: false
+    hist:
+      +schema: HIST
+      +strategy: check
+
 seeds:
   dbt_snowflake_wif_client:
     +quote_columns: false
