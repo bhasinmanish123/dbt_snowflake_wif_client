@@ -1,0 +1,53 @@
+# ============================================================
+# dbt UAT deploy — SEPARATE, MANUAL trigger only (Solution 2)
+#
+# Trigger: workflow_dispatch (manual button)
+#   → deploy to UAT ONLY when you're ready (after SIT verified)
+#
+# Decoupled: if UAT fails, fix and re-run ONLY this workflow.
+# CI and SIT do NOT re-run.
+# ============================================================
+name: dbt Deploy UAT
+
+on:
+  workflow_dispatch:
+    inputs:
+      select:
+        description: 'dbt --select (optional, e.g. state:modified+ or tag:investment)'
+        required: false
+        default: ''
+
+concurrency:
+  group: dbt-uat
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-uat:
+    name: dbt deploy → UAT
+    runs-on: ubuntu-latest
+    environment: prod
+    env:
+      DBT_PROFILES_DIR: .
+      GITHUB_ACTOR: ${{ github.actor }}
+      GITHUB_EVENT_NAME: ''
+      DBT_CI_RUN: 'false'
+      DBT_TARGET: prod        # test repo uses 'prod' target; client would use 'uat'
+      DBT_SELECT: ${{ github.event.inputs.select }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Snowflake (WIF token)
+        uses: bhasinmanish123/dbt-action_client/.github/actions/setup-snowflake@main
+        with:
+          environment: prod
+          snowflake-account: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+
+      - name: Install dbt
+        run: pip install dbt-snowflake
+
+      - name: Run cd.sh (UAT deploy)
+        run: chmod +x cd.sh && ./cd.sh

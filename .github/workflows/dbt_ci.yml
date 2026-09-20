@@ -1,16 +1,13 @@
 # ============================================================
-# dbt CI — runs ci.sh, then deploys to shared TEST DB
+# dbt CI — FAST validation only (Solution 2: decoupled stages)
 #
-# Flow:
-#   1. ci job:
-#      a. Lint (YAML + SQL)
-#      b. setup-snowflake composite action → WIF OIDC token
-#      c. Run ci.sh → builds in CI_<github_username> personal schema
-#   2. test-deploy job (needs: ci — only runs if CI passes):
-#      a. setup-snowflake composite action (test env) → WIF OIDC token
-#      b. Run test.sh → builds into shared TEST schema for review
+# On PR push → runs ONLY CI (lint + build in personal CI_<user> schema).
+# SIT and UAT deploys are SEPARATE workflows you trigger when ready:
+#     dbt_deploy_sit.yml  (manual / on merge)
+#     dbt_deploy_uat.yml  (manual, after SIT verified)
 #
-#   PR opened/updated → CI → TEST DB.  Prod happens on merge (dbt_cd.yml).
+# This means a fix during review only re-runs CI (~2-5 min),
+# NOT the full CI→SIT→UAT chain (~30 min).
 # ============================================================
 name: dbt CI
 
@@ -65,32 +62,3 @@ jobs:
 
       - name: Run ci.sh
         run: chmod +x ci.sh && ./ci.sh
-
-  # ---- TEST DB deploy: runs ONLY after CI passes ----
-  test-deploy:
-    name: dbt TEST deploy → TEST
-    needs: ci
-    runs-on: ubuntu-latest
-    environment: prod
-    env:
-      DBT_PROFILES_DIR: .
-      GITHUB_ACTOR: ${{ github.actor }}
-      GITHUB_EVENT_NAME: ''
-      DBT_CI_RUN: 'false'
-      DBT_TARGET: test
-    steps:
-      - uses: actions/checkout@v4
-
-      # ---- Token (composite action ONLY provides the WIF token) ----
-      - name: Setup Snowflake (WIF token)
-        uses: bhasinmanish123/dbt-action_client/.github/actions/setup-snowflake@main
-        with:
-          environment: test
-          snowflake-account: ${{ secrets.SNOWFLAKE_ACCOUNT }}
-
-      # ---- dbt via test.sh (per-repo customizable script) ----
-      - name: Install dbt
-        run: pip install dbt-snowflake
-
-      - name: Run test.sh
-        run: chmod +x test.sh && ./test.sh

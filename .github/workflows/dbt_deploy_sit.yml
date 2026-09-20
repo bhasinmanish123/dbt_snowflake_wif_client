@@ -1,0 +1,56 @@
+# ============================================================
+# dbt SIT deploy — SEPARATE from CI (Solution 2)
+#
+# Triggers:
+#   1. workflow_dispatch → manual button (deploy any branch to SIT on demand)
+#   2. push to main      → auto-deploy to SIT after merge
+#
+# Because this is decoupled from CI, you can re-run JUST the SIT deploy
+# without re-running CI. A UAT failure never forces a CI+SIT rerun.
+# ============================================================
+name: dbt Deploy SIT
+
+on:
+  workflow_dispatch:          # manual trigger (Actions → Run workflow)
+    inputs:
+      select:
+        description: 'dbt --select (optional, e.g. state:modified+ or tag:investment)'
+        required: false
+        default: ''
+  push:
+    branches: [main]          # auto-deploy to SIT on merge to main
+
+concurrency:
+  group: dbt-sit
+  cancel-in-progress: false   # serialize SIT deploys
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-sit:
+    name: dbt deploy → SIT
+    runs-on: ubuntu-latest
+    environment: prod
+    env:
+      DBT_PROFILES_DIR: .
+      GITHUB_ACTOR: ${{ github.actor }}
+      GITHUB_EVENT_NAME: ''
+      DBT_CI_RUN: 'false'
+      DBT_TARGET: test
+      DBT_SELECT: ${{ github.event.inputs.select }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Snowflake (WIF token)
+        uses: bhasinmanish123/dbt-action_client/.github/actions/setup-snowflake@main
+        with:
+          environment: test
+          snowflake-account: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+
+      - name: Install dbt
+        run: pip install dbt-snowflake
+
+      - name: Run test.sh (SIT deploy)
+        run: chmod +x test.sh && ./test.sh
