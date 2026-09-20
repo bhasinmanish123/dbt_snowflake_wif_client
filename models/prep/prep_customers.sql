@@ -7,3 +7,4 @@ select
     signup_date
 from {{ ref('customers') }}
 -- concurrency test 2
+-- decoupled flow test 1789940082
